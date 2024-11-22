@@ -1,394 +1,269 @@
 <?php
-// TO MODIFY NUMBER OF MONTHS GRAPH, CHANGE rangeSelector
+// Display errors for debugging (remove in production)
+ini_set('display_errors', 1);
+error_reporting(E_ALL);
+
+// Include database configuration
 require "DB.inc";
 
-if (!($connection = @ mysql_connect($hostName,$username,$password)))
-   showerror();
+// Establish database connection
+$connection = @mysql_connect($hostName, $username, $password);
+if (!$connection) {
+    showerror();
+}
 
-if (!mysql_select_db($databaseName, $connection))
-     showerror( );
+if (!mysql_select_db($databaseName, $connection)) {
+    showerror();
+}
 
-$stock_name = isset($_POST['Stock_Name']) ? $_POST['Stock_Name'] : '';
-//$duration = $_POST[duration];
+// Retrieve the stock name from POST request
+$stock_name = isset($_POST['Stock_Name']) ? mysql_real_escape_string($_POST['Stock_Name']) : '';
 
-// Find maximum date
+// Fetch the maximum date for the selected stock
 $query_max = "SELECT MAX(date) AS max_date FROM price WHERE name = '$stock_name'";
-if (!($result_max = mysql_query($query_max,$connection)))
-   showerror();
-$row_max = mysql_fetch_array($result_max);
-extract($row_max);
-$to_date = date($max_date);
-//print "Maximum date: " . $to_date;
+$result_max = mysql_query($query_max, $connection);
+if (!$result_max) {
+    showerror();
+}
+$row_max = mysql_fetch_assoc($result_max);
+$to_date = $row_max['max_date'];
 
-//int "From date: " . $fm_date;
+// Fetch the stock data by joining 'price' and 'setindex' tables
+$query = "SELECT 
+            price.name, 
+            price.date AS date, 
+            DAYNAME(price.date) AS day, 
+            price.price, 
+            price.maxp, 
+            price.minp,
+            setindex.setindex, 
+            price.qty, 
+            (price.qty * price.price) AS amt
+          FROM price 
+          INNER JOIN setindex ON price.date = setindex.date
+          WHERE price.name = '$stock_name' 
+          ORDER BY price.date DESC";
 
-$query = "SELECT name, price.date AS date, DAYNAME(price.date) AS day, price, maxp, minp,
-		setindex, qty, qty*price AS amt
-          FROM price INNER JOIN setindex ON price.date = setindex.date
-          WHERE name = '$stock_name' 
-		ORDER BY price.date DESC";
-
-if (!($result = mysql_query($query,$connection)))
-   showerror();
+$result = mysql_query($query, $connection);
+if (!$result) {
+    showerror();
+}
 
 $num_days = mysql_num_rows($result);
 
-$stock_header=<<<EOD
-<html>
-	<head>
-		<title>Price Inquiry</title>
-		<link href="css/table_style.css" rel="stylesheet" type="text/css">
-		
-		<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
-		<script src="http://code.highcharts.com/stock/highstock.js"></script>
-		<script src="http://code.highcharts.com/stock/modules/exporting.js"></script>
-		<script type="text/javascript">
-			$(function() {
-				/**
-				* Dark theme for Highcharts JS
-				* @author Torstein Honsi
-				*/
+// Initialize arrays to store chart data
+$labels = [];
+$prices = [];
+$setindexes = []; // New array for setindex data
 
-				// Load the fonts
-				Highcharts.createElement('link', {
-				href: '//fonts.googleapis.com/css?family=Unica+One',
-				rel: 'stylesheet',
-				type: 'text/css'
-				}, null, document.getElementsByTagName('head')[0]);
-
-				Highcharts.theme = {
-					colors: ["#2b908f", "#90ee7e", "#f45b5b", "#7798BF", "#aaeeee", "#ff0066", "#eeaaee",
-					"#55BF3B", "#DF5353", "#7798BF", "#aaeeee"],
-					chart: {
-						backgroundColor: {
-						linearGradient: { x1: 0, y1: 0, x2: 1, y2: 1 },
-						stops: [
-							[0, '#2a2a2b'],
-							[1, '#3e3e40']
-						]
-					},
-					style: {
-						fontFamily: "'Unica One', sans-serif"
-						},
-						plotBorderColor: '#606063'
-					},
-					title: {
-						style: {
-							color: '#E0E0E3',
-							textTransform: 'uppercase',
-							fontSize: '20px'
-						}
-					},
-					subtitle: {
-						style: {
-							color: '#E0E0E3',
-							textTransform: 'uppercase'
-						}
-					},
-					xAxis: {
-						gridLineColor: '#707073',
-						labels: {
-							style: {
-								color: '#E0E0E3'
-							}
-						},
-						lineColor: '#707073',
-						minorGridLineColor: '#505053',
-						tickColor: '#707073',
-						title: {
-							style: {
-								color: '#A0A0A3'
-							}
-						}
-					},
-					yAxis: {
-						gridLineColor: '#707073',
-						labels: {
-							style: {
-								color: '#E0E0E3'
-							}
-						},
-						lineColor: '#707073',
-						minorGridLineColor: '#505053',
-						tickColor: '#707073',
-						tickWidth: 1,
-						title: {
-							style: {
-								color: '#A0A0A3'
-							}
-						}
-					},
-					tooltip: {
-						backgroundColor: 'rgba(0, 0, 0, 0.85)',
-						style: {
-							color: '#F0F0F0'
-						}
-					},
-					plotOptions: {
-						series: {
-							dataLabels: {
-								color: '#B0B0B3'
-							},
-							marker: {
-								lineColor: '#333'
-							}
-						},
-						boxplot: {
-							fillColor: '#505053'
-						},
-						candlestick: {
-							lineColor: 'white'
-						},
-						errorbar: {
-							color: 'white'
-						}
-					},
-					legend: {
-						itemStyle: {
-							color: '#E0E0E3'
-						},
-						itemHoverStyle: {
-							color: '#FFF'
-						},
-						itemHiddenStyle: {
-							color: '#606063'
-						}
-					},
-					credits: {
-						style: {
-							color: '#666'
-						}
-					},
-					labels: {
-						style: {
-							color: '#707073'
-						}
-					},
-					drilldown: {
-						activeAxisLabelStyle: {
-							color: '#F0F0F3'
-						},
-						activeDataLabelStyle: {
-							color: '#F0F0F3'
-						}
-					},
-					navigation: {
-						buttonOptions: {
-							symbolStroke: '#DDDDDD',
-							theme: {
-								fill: '#505053'
-							}
-						}
-					},
-					// scroll charts
-					rangeSelector: {
-						buttonTheme: {
-							fill: '#505053',
-							stroke: '#000000',
-							style: {
-								color: '#CCC'
-							},
-							states: {
-								hover: {
-									fill: '#707073',
-									stroke: '#000000',
-									style: {
-										color: 'white'
-									}
-								},
-								select: {
-									fill: '#000003',
-									stroke: '#000000',
-									style: {
-										color: 'white'
-									}
-								}
-							}
-						},
-						inputBoxBorderColor: '#505053',
-						inputStyle: {
-							backgroundColor: '#333',
-							color: 'silver'
-						},
-						labelStyle: {
-							color: 'silver'
-						}
-					},
-					navigator: {
-						handles: {
-							backgroundColor: '#666',
-							borderColor: '#AAA'
-						},
-						outlineColor: '#CCC',
-						maskFill: 'rgba(255,255,255,0.1)',
-						series: {
-							color: '#7798BF',
-							lineColor: '#A6C7ED'
-						},
-						xAxis: {
-							gridLineColor: '#505053'
-						}
-					},
-					scrollbar: {
-						barBackgroundColor: '#808083',
-						barBorderColor: '#808083',
-						buttonArrowColor: '#CCC',
-						buttonBackgroundColor: '#606063',
-						buttonBorderColor: '#606063',
-						rifleColor: '#FFF',
-						trackBackgroundColor: '#404043',
-						trackBorderColor: '#404043'
-					},
-					// special colors for some of the
-					legendBackgroundColor: 'rgba(0, 0, 0, 0.5)',
-					background2: '#505053',
-					dataLabelsColor: '#B0B0B3',
-					textColor: '#C0C0C0',
-					contrastTextColor: '#F0F0F3',
-					maskColor: 'rgba(255,255,255,0.3)'
-				};
-
-				// Apply the theme
-				Highcharts.setOptions(Highcharts.theme);
-				
-				//add your code here
-				var tableData = {};	
-				var table = $('table');
-				tableData.xLabels = [];
-				tableData.price = [];
-				tableData.max = [];
-				tableData.min = [];
-				var sryPrice = [];
-				var sryMax = [];
-				var sryMin = [];
-				
-				table.find('tbody td.date').each(function(){
-					tableData.xLabels.push( Date.parse($(this).text()) );
-				});
-				tableData.xLabels.reverse();
-			//	console.log(tableData.xLabels);	
-				table.find('tbody td.price').each(function(){
-					tableData.price.push( $(this).html() );
-				});
-				tableData.price.reverse();
-				table.find('tbody td.max').each(function(){
-					tableData.max.push( $(this).html() );
-				});
-				tableData.max.reverse();
-				table.find('tbody td.min').each(function(){
-					tableData.min.push( $(this).html() );
-				});	
-				tableData.min.reverse();
-				for (var i = 0; i < tableData.xLabels.length; ++i) {
-					sryPrice.push([(tableData.xLabels[i]),parseFloat(tableData.price[i])]); 
-					sryMax.push([(tableData.xLabels[i]),parseFloat(tableData.max[i])]);	
-					sryMin.push([(tableData.xLabels[i]),parseFloat(tableData.min[i])]);					
-				};	
-				$('#container').highcharts('StockChart',{
-					rangeSelector : {
-						selected : 1
-					},
-					credits : {
-						enabled : true
-					},					
-					title: {
-						text: 'Stock Price'
-					},			
-					series: [
-						{
-							data: sryPrice,
-							type : 'areaspline',
-							threshold : null,
-							tooltip: {
-								valueDecimals: 2
-							},
-							fillColor : {
-								linearGradient : {
-									x1: 0,
-									y1: 0,
-									x2: 0,
-									y2: 1
-								},
-								stops : [
-									[0, Highcharts.getOptions().colors[0]],
-									[1, Highcharts.Color(Highcharts.getOptions().colors[0]).setOpacity(0).get('rgba')]
-								]
-							}								
-						}
-					]
-				});
-				$('<input type="button" value="toggle table" id="toggleButton">')
-				.insertBefore('#datatable');
-				$('#toggleButton').click(function() {
-					$('#datatable').fadeToggle(4000, function(){
-						//
-					});
-				});
-			});
-		</script>	
-	</head>
-	<body>
-		<h1 align="center">$stock_name</h1>	
-		<div id="container" style="min-width: 310px; height: 400px;"></div>
-		<table id="datatable" class="myTable" border="1" align="center">
-						<thead>
-							<tr>	
-								<th></th>
-								<th>Price</th>
-								<th>Maximum</th>
-								<th>Minimum</th>
-								<th>Qty</th>
-							</tr>
-						</thead>
-						<tbody>
-EOD;
-$i = 0;
+// Initialize variable to store table rows
 $stock_details = '';
-while($row = mysql_fetch_array($result))
-{
-	   $i = $i + 1;
-     $stock_name = $row['name'];
-     $date = $row['date'];
-     $day = $row['day'];
-     $price = $row['price'];
-     $maxp  = $row['maxp'];
-     $minp  = $row['minp'];
-     $setindex = $row['setindex'];
-     $qty  = $row['qty'];
-     $fmtQty = number_format($qty,0,'.',',');	 
-     $amt = $row['amt'];
-     $fmtAmt = number_format($amt/1000000,3,'.',',');
-    
-     if ($i == 1) {
-	     $price0 = $price;
-	     $pct = 0;
-   } else {
-	   $pct = number_format(($price - $price0)/$price0 * 100,2,'.','');
- }
 
-$stock_details .=<<<EOD
-							<tr>
-								<td class="date">$date</td>				
-								<td class="price">$price</td>
-								<td class="max">$maxp</td>
-								<td class="min">$minp</td>
-								<td class="qty">$fmtQty</td>
-							</tr>\n
+// Counter to calculate percentage change
+$i = 0;
+$price0 = 0;
+
+// Loop through the fetched data to populate the table and chart data
+while ($row = mysql_fetch_assoc($result)) {
+    $i++;
+
+    $date = $row['date'];
+    $day = $row['day'];
+    $price = $row['price'];
+    $maxp  = $row['maxp'];
+    $minp  = $row['minp'];
+    $setindex = $row['setindex'];
+    $qty  = $row['qty'];
+    $fmtQty = number_format($qty, 0, '.', ',');	 
+    $amt = $row['amt'];
+    $fmtAmt = number_format($amt / 1000000, 3, '.', '');
+
+    if ($i == 1) {
+        $price0 = $price;
+        $pct = 0;
+    } else {
+        $pct = number_format((($price - $price0) / $price0) * 100, 2, '.', '');
+    }
+
+    // Add data to chart arrays
+    $labels[] = $date; // You can format the date as needed
+    $prices[] = $price;
+    $setindexes[] = $setindex; // Add setindex to its array
+
+    // Append the row to the table details
+    $stock_details .=<<<EOD
+        <tr>
+            <td class="date">$date</td>				
+            <td class="price">$price</td>
+            <td class="max">$maxp</td>
+            <td class="min">$minp</td>
+            <td class="setindex">$setindex</td> <!-- New column for Set Index -->
+            <td class="qty">$fmtQty</td>
+        </tr>\n
 EOD;
 }
 
+if ($num_days > 0) {
+    // Encode PHP arrays into JSON for JavaScript
+    $labels_json = json_encode(array_reverse($labels)); // Reverse to have chronological order
+    $prices_json = json_encode(array_reverse($prices));
+    $setindexes_json = json_encode(array_reverse($setindexes)); // Encode setindex data
+} else {
+    $labels_json = json_encode([]);
+    $prices_json = json_encode([]);
+    $setindexes_json = json_encode([]);
+}
 
-$stock_footer ="					</tbody>
-					</table>
-     </body>
-</html>";
+// Close the database connection
+mysql_close($connection);
 
-
+// Define the HTML structure with embedded JavaScript for Chart.js
 $stock =<<<STOCK
-	$stock_header
-	$stock_details
-	$stock_footer
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Stock Inquiry - $stock_name</title>
+    <link href="css/table_style.css" rel="stylesheet" type="text/css">
+    <!-- Include Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Include jQuery (optional, only if needed for other functionalities) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <style>
+        /* Optional: Add some basic styling */
+        body { font-family: Arial, sans-serif; }
+        h1 { text-align: center; }
+        #chartContainer { width: 80%; margin: auto; }
+        table { width: 80%; margin: 20px auto; border-collapse: collapse; }
+        th, td { padding: 10px; text-align: center; }
+        th { background-color: #f2f2f2; }
+        .date { width: 15%; }
+        .price, .max, .min, .setindex, .qty { width: 15%; }
+    </style>
+</head>
+<body>
+    <h1>$stock_name</h1>	
+    <div id="chartContainer">
+        <canvas id="myChart"></canvas>
+    </div>
+    <table id="datatable" class="myTable" border="1" align="center">
+        <thead>
+            <tr>	
+                <th>Date</th>
+                <th>Price</th>
+                <th>Maximum</th>
+                <th>Minimum</th>
+                <th>Set Index</th> <!-- New header for Set Index -->
+                <th>Qty</th>
+            </tr>
+        </thead>
+        <tbody>
+            $stock_details
+        </tbody>
+    </table>
+
+    <script type="text/javascript">
+        // Parse PHP JSON data into JavaScript variables
+        const labels = $labels_json;
+        const prices = $prices_json;
+        const setindexes = $setindexes_json; // Received setindex data
+
+        // Check if there is data to display
+        if (labels.length > 0 && prices.length > 0 && setindexes.length > 0) {
+            // Setup the Chart.js chart
+            const ctx = document.getElementById('myChart').getContext('2d');
+            const myChart = new Chart(ctx, {
+                type: 'line', // You can change this to 'bar', 'pie', etc.
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Price Over Time',
+                            data: prices,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)', // Light blue fill
+                            borderColor: 'rgba(54, 162, 235, 1)', // Blue border
+                            borderWidth: 1,
+                            fill: true,
+                            tension: 0.1, // Smoothness of the line
+                            yAxisID: 'yPrice'
+                        },
+                        {
+                            label: 'Set Index Over Time',
+                            data: setindexes,
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)', // Light red fill
+                            borderColor: 'rgba(255, 99, 132, 1)', // Red border
+                            borderWidth: 1,
+                            fill: true,
+                            tension: 0.1, // Smoothness of the line
+                            yAxisID: 'ySetIndex'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    stacked: false,
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        yPrice: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: 'Price'
+                            },
+                            beginAtZero: false
+                        },
+                        ySetIndex: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Set Index'
+                            },
+                            grid: {
+                                drawOnChartArea: false, // Prevent grid lines from overlapping
+                            },
+                            beginAtZero: false
+                        }
+                    },
+                    plugins: {
+                        tooltip: {
+                            enabled: true,
+                            mode: 'nearest',
+                            intersect: false
+                        },
+                        legend: {
+                            position: 'top',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Stock Price vs. Set Index Over Time'
+                        }
+                    }
+                }
+            });
+        } else {
+            // If no data, display a message
+            const chartContainer = document.getElementById('chartContainer');
+            chartContainer.innerHTML = '<p style="text-align:center;">No data available to display the chart.</p>';
+        }
+    </script>
+</body>
+</html>
 STOCK;
 
-     print $stock;
+// Output the complete HTML
+echo $stock;
 ?>

@@ -3,14 +3,7 @@
 <div class="container">
 <div class="page-content">
 
-	<div class="row">
-		<ol class="breadcrumb">
-			<li><a href="index.php">Home</a></li>
-			<li><a href="#">Day Trade</a></li>
-			<li><a href="FrqncyFrm3.php">Frequency</a></li>
-		</ol>
-		<h1><span class="icon-rocket"></span>Frequency</h1>
-	</div>	<!-- End of Row -->
+
 		
 	<div class="row">
 		<form class="form-horizontal" method="post" action="FrqncyInq3.php">
@@ -66,6 +59,3 @@
 	
 </div> <!-- End of Page-content -->	
 </div> <!-- End of Container -->	
-
-<?php include('inc/footer.php'); ?>
-

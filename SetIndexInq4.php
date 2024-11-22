@@ -19,7 +19,7 @@ $stock_header = <<<EOD
         <title>SET Index Inquiry</title>
         <link href="css/table_style.css" rel="stylesheet" type="text/css">
 
-        <!-- Include Chart.js -->
+        <!-- Подключаем Chart.js -->
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         
         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
@@ -29,11 +29,12 @@ $stock_header = <<<EOD
 
             var labels = [];
             var dataPoints = [];
+            
 EOD;
 
 $i = 0;
 $stock_details = '';
-$table_rows = ''; // To store table rows
+$table_rows = ''; // Для хранения строк таблицы
 while($row = mysql_fetch_array($result))
 {
      $i++;
@@ -41,11 +42,11 @@ while($row = mysql_fetch_array($result))
      $date = $row['date'];
      $setindex = $row['setindex'];
 
-     // Create JavaScript arrays for labels and data points
+     // Формируем JavaScript-массивы для меток и данных
      $stock_details .= "labels.push('$date');\n";
      $stock_details .= "dataPoints.push($setindex);\n";
 
-    // Also build the HTML table if needed for display
+    // Также формируем HTML-таблицу, если она нужна для отображения
     $table_rows .=<<<EOD
         <tr>
             <td class="date">$date</td>
@@ -55,14 +56,14 @@ EOD;
 }
 
 $stock_footer = <<<EOD
-            // Reverse the arrays so that data appears in chronological order
+            // Разворачиваем массивы, чтобы данные отображались в хронологическом порядке
             labels.reverse();
             dataPoints.reverse();
 
-            // Create the Chart.js chart
+            // Создаем график Chart.js
             var ctx = document.getElementById('myChart').getContext('2d');
             var chart = new Chart(ctx, {
-                type: 'line', // Chart type: line chart
+                type: 'line', // Тип графика: линия
                 data: {
                     labels: labels,
                     datasets: [{
@@ -71,7 +72,7 @@ $stock_footer = <<<EOD
                         fill: true,
                         backgroundColor: 'rgba(75,192,192,0.4)',
                         borderColor: 'rgba(75,192,192,1)',
-                        tension: 0.1 // Smoothness of the line
+                        tension: 0.1 // Гладкость линии
                     }]
                 },
                 options: {
@@ -81,14 +82,14 @@ $stock_footer = <<<EOD
                             display: true,
                             title: {
                                 display: true,
-                                text: 'Date'
+                                text: 'Дата'
                             }
                         },
                         y: {
                             display: true,
                             title: {
                                 display: true,
-                                text: 'Index'
+                                text: 'Индекс'
                             }
                         }
                     },
@@ -99,13 +100,13 @@ $stock_footer = <<<EOD
                         },
                         title: {
                             display: true,
-                            text: 'Stock Exchange of Thailand Index'
+                            text: 'Индекс фондовой биржи Таиланда'
                         }
                     }
                 }
             });
 
-            // Toggle the display of the table
+            // Управление отображением таблицы
             \$('#toggleButton').click(function() {
                 \$('#datatable').fadeToggle(400);
             });
@@ -117,11 +118,11 @@ $stock_footer = <<<EOD
         <div style="width:80%; margin:0 auto;">
             <canvas id="myChart"></canvas>
         </div>
-        <input type="button" value="Show/Hide Table" id="toggleButton">
+        <input type="button" value="Показать/Скрыть таблицу" id="toggleButton">
         <table id="datatable" class="myTable" align="center">
             <thead>
                 <tr>
-                    <th>Date</th>
+                    <th>Дата</th>
                     <th>Set Index</th>
                 </tr>
             </thead>
@@ -136,7 +137,7 @@ $stock_footer .= "
     </body>
 </html>";
 
-$stock = <<<STOCK
+$stock =<<<STOCK
     $stock_header
     $stock_details
     $stock_footer

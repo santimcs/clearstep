@@ -132,7 +132,6 @@ $stock_footer ="
 					<h2>YieldInq</h2>
 				</div>
                </div>
-			<div id=\"footer\"><a href='mailto: santimcs@hotmail.com'>santimcs@hotmail.com</a></div>
           </div>
      </body>
 </html>";

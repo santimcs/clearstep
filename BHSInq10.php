@@ -17,22 +17,31 @@ extract($row_max);
 $to_date = date($max_date);
 //print "Maximum date: " . $to_date;
 
-$query = "UPDATE SAA,PRICE SET SAA.PRICE = PRICE.PRICE WHERE PRICE.NAME=SAA.NAME AND PRICE.DATE='$to_date'";
+$createTempTableSQL = "
+    CREATE TEMPORARY TABLE temp_price AS
+    SELECT NAME, PRICE, DATE
+    FROM price
+    WHERE DATE = '$to_date';
+";
+if (!($result = mysql_query($createTempTableSQL, $connection)))
+   showerror();
+
+$query = "UPDATE Consensus
+INNER JOIN temp_price ON temp_price.NAME = Consensus.NAME
+SET Consensus.PRICE = temp_price.price";
 if (!($result = mysql_query($query,$connection)))
    showerror();
 
-$query = "UPDATE SAA SET GAIN = (TP-PRICE)/PRICE*100";
+$query = "UPDATE Consensus SET GAIN = (target-PRICE)/PRICE*100";
 if (!($result = mysql_query($query,$connection)))
    showerror();
 
-$query = "SELECT SAA.name AS name, buy.date AS date, buy.price AS cost,
-          SAA.price, TP, gain, Buy, Hold, Sell, (Buy*2)+Hold+(Sell*-2) AS Score, ROE, PER, SAA.div AS yld,
-		PER.PBV, tendays.price AS tdprice
-          FROM SAA INNER JOIN StockName ON StockName.name = SAA.name
-          INNER JOIN ROE on SAA.name = ROE.name
-          INNER JOIN PER on SAA.name = PER.name
-          INNER JOIN tendays on SAA.name = tendays.name
-          INNER JOIN buy on SAA.name = buy.name WHERE buy.active = 1
+$query = "SELECT Consensus.name AS name, buy.date AS date, FORMAT(buy.price,2) AS cost,
+          Consensus.price, target, gain, Buy, Hold, Sell, (Buy*2)+Hold+(Sell*-2) AS Score, 
+			 tendays.price AS tdprice
+          FROM Consensus INNER JOIN StockName ON StockName.name = Consensus.name
+          INNER JOIN tendays on Consensus.name = tendays.name
+          INNER JOIN buy on Consensus.name = buy.name WHERE buy.active = 1
 		  ORDER BY name ";		
 
 if (!($result = mysql_query($query,$connection)))
@@ -73,14 +82,11 @@ $stock_header=<<<EOD
 							<th scope="col">Cons.</th>
 							<th scope="col">Actual</th>
 							<th scope="col">Project</th>
-                            <th scope="col">Div</th>
 							<th scope="col">Buy</th>
 							<th scope="col">Hold</th>
 							<th scope="col">Sell</th>
 							<th scope="col">Score</th>
-							<th scope="col">ROE</th>
-							<th scope="col">P/E</th>
-							<th scope="col">P/BV</th>
+
 						</tr>
 					</thead>
 					<tbody>
@@ -92,19 +98,16 @@ while($row = mysql_fetch_array($result))
      $date = $row['date'];	
      $cost = $row['cost'];
      $price = $row['price'];
-     $TP = $row['TP'];
+     $target = $row['target'];
      $Gain = $row['gain'];
-    $Div = $row['yld'];
 	$Buy  = $row['Buy'];
 	$Hold  = $row['Hold'];	 
 	$Sell  = $row['Sell'];	 
      $Score = $row['Score'];
-     $ROE = $row['ROE'];
-     $PER = $row['PER'];
-     $PBV = $row['PBV'];
+
      $tdprice = $row['tdprice'];
 	$Actual = number_format(($price-$cost)/$cost*100,2);
-	$Project = number_format(($TP-$price)/$price*100,2);
+	$Project = number_format(($target-$price)/$price*100,2);
 // $stock_details = isset($_POST['stock_details']) ? $_POST['stock_details'] : '';
 
 $stock_details .= <<<EOT
@@ -113,17 +116,14 @@ $stock_details .= <<<EOT
 							<td>$date</td>	
 							<td>$cost</td>						
 							<td>$price</td>
-							<td>$TP</td>
+							<td>$target</td>
 							<td>$Actual</td>
 							<td>$Project</td>
-                            <td>$Div</td>
 							<td>$Buy</td>	
 							<td>$Hold</td>	 
 							<td>$Sell</td>	 
 							<td>$Score</td>
-							<td>$ROE</td>
-							<td>$PER</td>
-							<td>$PBV</td>
+
 						</tr>\n
 EOT;
 }

@@ -48,4 +48,3 @@
 		</div> 
 	</div>	<!-- End of Row -->		
 </div> <!-- End of Container -->	
-<?php include('inc/footer.php'); ?>

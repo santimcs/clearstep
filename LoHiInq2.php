@@ -76,7 +76,7 @@ if (!($result = mysql_query($query,$connection)))
  
 $query = "INSERT INTO pricelo 
 		SELECT name, min(price) FROM price
-		WHERE date < '$present'
+		WHERE date >= DATE_SUB('$present', INTERVAL 1 YEAR) AND date < '$present' 
 		GROUP BY name";
 if (!($result = mysql_query($query,$connection)))
 	showerror();
@@ -87,7 +87,7 @@ if (!($result = mysql_query($query,$connection)))
  
 $query = "INSERT INTO pricehi 
 		SELECT name, max(price) FROM price
-		WHERE date < '$present'
+		WHERE date >= DATE_SUB('$present', INTERVAL 1 YEAR) AND date < '$present'
 		GROUP BY name";
 if (!($result = mysql_query($query,$connection)))
 	showerror();
@@ -157,6 +157,5 @@ EOD;
 			</tbody>
 		</table>
 	</div>  <!-- End of class="panel panel-default">	
-</div>	<!-- End Of Container -->
+</div>	
 
-<?php include('inc/footer.php'); ?>

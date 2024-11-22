@@ -1,14 +1,6 @@
 <?php include('inc/header.php'); ?>
 
 	<div class="container page-content">
-		<div class="row">
-		    <ol class="breadcrumb">
-				<li><a href="index.php">Home</a></li>
-				<li><a href="about.php">Daily</a></li>
-				<li><a href="LoHiInq2.php">Low/High</a></li>
-			</ol>
-			<h1><span class="icon-rocket"></span>Low/High Inquiry</h1>
-		</div>	<!-- End of Row -->
 		
 		<div class="row">
 		<div class="col-md-4">
@@ -46,4 +38,3 @@
 		</div>  <!-- End of Row -->
 	</div>  <!-- Container -->
 	
-<?php include('inc/footer.php'); ?>

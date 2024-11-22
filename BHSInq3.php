@@ -122,7 +122,6 @@ $stock_footer ="			</tbody>
 					<h2>BHSInq</h2>
 				</div>
 			</div>
-			    <div id=\"footer\"><a href='mailto: santimcs@hotmail.com'>santimcs@hotmail.com</a></div>
 		</div>
      </body>
 </html>";

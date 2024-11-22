@@ -165,10 +165,6 @@ $stock_footer ="
 				<h2>FrqncyInq.php</h2>
 			</div>
 		</div>			<!-- ContentWrap -->
-		<div id=\"footer\"><a href='mailto: santimcs@hotmail.com'>santimcs@hotmail.com</a></div>
-		<div class=\"random_img\">
-			<img src=\"http://localhost/random/rotate.php\" width=\"1160\">
-		</div>			
 	</div>	<!-- Container -->
 </body>
 </html>";
